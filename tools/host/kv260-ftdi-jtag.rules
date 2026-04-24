@@ -1,0 +1,15 @@
+# KV260 host-side FTDI rule for stable JTAG visibility on Linux.
+#
+# This intentionally does not install the stock AMD FTDI rule unchanged.
+# On this host, interface 01 is the active UART console, so only interface 00
+# is released from ftdi_sio for hw_server/XSCT. The raw USB device is exposed
+# to the local plugdev group, and ModemManager is told to ignore the carrier.
+
+# Grant raw USB access for the KV260 carrier FT4232 device.
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="0403", ATTR{idProduct}=="6011", ATTR{serial}=="XFL15KDTUSIW", GROUP:="plugdev", MODE:="0660", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Keep ModemManager off all ttyUSB ports exposed by this carrier.
+ACTION=="add|change", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="0403", ENV{ID_MODEL_ID}=="6011", ENV{ID_USB_SERIAL_SHORT}=="XFL15KDTUSIW", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Free only interface 00 for JTAG access. Preserve interface 01 as UART.
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6011", ATTRS{serial}=="XFL15KDTUSIW", ATTR{bInterfaceNumber}=="00", RUN+="/bin/sh -c 'test -e /sys%p/driver/unbind && echo -n %k > /sys%p/driver/unbind || true'"

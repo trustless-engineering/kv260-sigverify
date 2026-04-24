@@ -1,0 +1,56 @@
+/include/ "system-conf.dtsi"
+/ {
+	chosen {
+		bootargs = "earlycon=cdns,mmio,0xff010000,115200n8 console=ttyPS1,115200 console=ttyPS0,115200 keep_bootcon cpuidle.off=1 maxcpus=2 root=/dev/ram0 rw";
+		stdout-path = "serial1:115200n8";
+	};
+
+	aliases {
+		mmc0 = &sdhci1;
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&qspi {
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-tx-bus-width = <4>;
+		spi-rx-bus-width = <4>;
+		spi-max-frequency = <40000000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+	};
+};
+
+&sdhci1 {
+	bus-width = <4>;
+	disable-wp;
+	no-1-8-v;
+	broken-cd;
+	status = "okay";
+};
+
+&sigv_pl_0 {
+	compatible = "generic-uio";
+	status = "okay";
+};
+
+&axi_bram_ctrl_message {
+	compatible = "generic-uio";
+	status = "okay";
+};
+
+&axi_bram_ctrl_job {
+	compatible = "generic-uio";
+	status = "okay";
+};

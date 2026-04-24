@@ -1,0 +1,3 @@
+[workspace]
+members = ["tools/kv260_sigv_daemon"]
+resolver = "2"

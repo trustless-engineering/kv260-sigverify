@@ -30,9 +30,34 @@ Sources:
 - [UG973 2025.2 Running the Installer, released November 20, 2025](https://docs.amd.com/r/en-US/ug973-vivado-release-notes-install-license/Running-the-Installer)
 - [UG1144 2025.2 Installation Requirements, released November 20, 2025](https://docs.amd.com/r/en-US/ug1144-petalinux-tools-reference-guide/Installation-Requirements)
 
-## What Is Installed Locally
+## Nix-Native Open-Source Flow
 
-The open-source side of the FPGA and bring-up toolchain is installed in the user Nix profile:
+The repo flake provides the open-source toolchain used by the RTL tests and
+host utilities. From a fresh clone:
+
+```bash
+nix develop
+nix run .#test
+```
+
+Common entry points:
+
+```bash
+nix run .#rtl-tests
+nix run .#cargo-test
+nix run .#petalinux-prepare
+nix run .#petalinux-doctor
+nix run .#build-image
+```
+
+`petalinux-prepare` writes local generated PetaLinux metadata for the current
+checkout path. That file is intentionally ignored so the repository remains
+relocatable and does not commit user-specific absolute paths.
+
+## What Nix Provides
+
+The open-source side of the FPGA and bring-up toolchain is provided by
+`flake.nix`:
 
 - `verilator`
 - `yosys`
@@ -70,7 +95,7 @@ For the fully supported KV260 flow, use:
 
 That keeps the hardware export and PetaLinux versions aligned and stays inside AMD's documented host support.
 
-## Repo Bootstrap Script
+## Vendor Tool Bootstrap Script
 
 The repo includes a host bootstrap helper:
 
@@ -141,25 +166,25 @@ That avoids forcing unsupported host changes such as globally changing `/bin/sh`
 Build the Ubuntu `22.04` image:
 
 ```bash
-./tools/kv260_petalinux_docker.sh build
+nix run .#petalinux-docker -- build
 ```
 
 Sanity-check the container:
 
 ```bash
-./tools/kv260_petalinux_docker.sh doctor
+nix run .#petalinux-doctor
 ```
 
 Open a shell in the container:
 
 ```bash
-./tools/kv260_petalinux_docker.sh shell
+nix run .#petalinux-shell
 ```
 
 Install `PetaLinux 2025.2` from a host-side installer payload:
 
 ```bash
-./tools/kv260_petalinux_docker.sh install-petalinux \
+nix run .#petalinux-docker -- install-petalinux \
   /absolute/path/to/petalinux-v2025.2-final-installer.run
 ```
 

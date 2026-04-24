@@ -30,6 +30,26 @@ txnverify-fpga/
 - Host-side Solana transaction extraction and KV260 smoke tooling
 - PetaLinux packaging for the canonical userspace tools
 
+## Fresh Clone Nix Flow
+
+The open-source development tools are provided by the repo flake:
+
+```bash
+nix develop
+nix run .#test
+```
+
+Useful app entry points:
+
+- `nix run .#petalinux-prepare` generates local PetaLinux metadata for the
+  current checkout path.
+- `nix run .#build-image` runs the KV260 image build wrapper.
+- `nix run .#petalinux-doctor` checks the Ubuntu 22.04 PetaLinux container.
+
+AMD Vivado/Vitis and PetaLinux are still vendor-licensed tools and must be
+installed from AMD-provided installers; the Nix flow supplies the open-source
+tooling and wraps the repo scripts around those vendor installs.
+
 ## Pointers
 
 - KV260 overview: `fpga/kv260_sigv/README.md`

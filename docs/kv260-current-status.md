@@ -38,7 +38,7 @@ intended as the resume point for the next hardware session.
   times, which pointed to a BRAM Port B addressing bug rather than bad
   signature math.
 - The root cause was in
-  [fpga/kv260_sigv/src/kv260_sigv_top.v](/home/wedtm/txnverify-fpga/fpga/kv260_sigv/src/kv260_sigv_top.v):
+  [fpga/kv260_sigv/src/kv260_sigv_top.v](../fpga/kv260_sigv/src/kv260_sigv_top.v):
   the core was producing BRAM word addresses, while Vivado `blk_mem_gen` Port B
   expects byte addresses. The fix now shifts the core job/message addresses left
   by `2` before driving the Port B buses.
@@ -58,7 +58,7 @@ intended as the resume point for the next hardware session.
   monotonic batch counter, so concurrent smoke runs can collide with
   `snapshot batch_id mismatch`. Batch validation should stay serialized.
 - The staged host artifacts in
-  [artifacts/kv260_sigv](/home/wedtm/txnverify-fpga/artifacts/kv260_sigv) have
+  [artifacts/kv260_sigv](../artifacts/kv260_sigv) have
   been refreshed again. The staged `system.bit` and `manifest.json` now both
   report the validated `full` bitstream hash
   `70b1cfca73dd4db5a8217dfe9e24fb90c40b780dd1c56bc6f107e81a715cd82a`.
@@ -76,9 +76,9 @@ intended as the resume point for the next hardware session.
   bringup divider interrupt and made raw AXI-Lite reads of `HW_MAGIC` /
   `HW_BUILD` work.
 - The repo now contains a persistent Linux-side fix:
-  [tools/kv260_sigv_pl_clock_init.py](/home/wedtm/txnverify-fpga/tools/kv260_sigv_pl_clock_init.py)
+  [tools/kv260_sigv_pl_clock_init.py](../tools/kv260_sigv_pl_clock_init.py)
   plus an `ExecStartPre` hook in
-  [tools/kv260_sigv_daemon/kv260_sigv_daemon.service](/home/wedtm/txnverify-fpga/tools/kv260_sigv_daemon/kv260_sigv_daemon.service).
+  [tools/kv260_sigv_daemon/kv260_sigv_daemon.service](../tools/kv260_sigv_daemon/kv260_sigv_daemon.service).
   Matching packaged copies were added to the PetaLinux recipes.
 - That helper and service hook were installed manually onto the live board and
   validated against the full hardware image. With `PL0_REF_CTRL` deliberately
@@ -87,7 +87,7 @@ intended as the resume point for the next hardware session.
   `HW_MAGIC=0x53494756` and `HW_BUILD=0x00000100`, and HTTP
   `GET /v1/status` on `/run/kv260-sigv.sock` returns `200 OK`.
 - The PetaLinux image has now been rebuilt, and the refreshed
-  [artifacts/kv260_sigv](/home/wedtm/txnverify-fpga/artifacts/kv260_sigv)
+  [artifacts/kv260_sigv](../artifacts/kv260_sigv)
   rootfs does contain `/usr/bin/kv260_sigv_pl_clock_init.py` plus the updated
   `kv260_sigv_daemon.service` with `ExecStartPre=/usr/bin/kv260_sigv_pl_clock_init.py --quiet`.
 - The staged SD image was copied onto the card from the host and then booted
@@ -132,9 +132,9 @@ uenvcmd=fatload ${devtype} ${devnum}:${distro_bootpart} 0x30000000 system.bit &&
   helper is installed, because the missing `pl0_ref` clock is enabled before
   the daemon probes hardware.
 - A KV260-specific host udev rule and installer are now staged in
-  [tools/host/kv260-ftdi-jtag.rules](/home/wedtm/txnverify-fpga/tools/host/kv260-ftdi-jtag.rules)
+  [tools/host/kv260-ftdi-jtag.rules](../tools/host/kv260-ftdi-jtag.rules)
   and
-  [tools/host/install_kv260_ftdi_jtag_rules.sh](/home/wedtm/txnverify-fpga/tools/host/install_kv260_ftdi_jtag_rules.sh).
+  [tools/host/install_kv260_ftdi_jtag_rules.sh](../tools/host/install_kv260_ftdi_jtag_rules.sh).
   This custom rule is intentionally narrower than AMD's stock FTDI rule: it
   grants `plugdev` access to the raw FT4232 USB node, sets
   `ID_MM_DEVICE_IGNORE=1`, and unbinds only FTDI interface `00` so the JTAG
@@ -149,7 +149,7 @@ uenvcmd=fatload ${devtype} ${devnum}:${distro_bootpart} 0x30000000 system.bit &&
   So the remaining JTAG visibility problem is not explained by simple FTDI
   driver ownership/binding alone.
 - Matching staged boot artifacts now exist in
-  [artifacts/kv260_sigv](/home/wedtm/txnverify-fpga/artifacts/kv260_sigv),
+  [artifacts/kv260_sigv](../artifacts/kv260_sigv),
   including `BOOT.BIN`, `image.ub`, `system.bit`, `uEnv.txt`, the XSA, and
   implementation reports. The staged manifest now reports the active hardware
   mode as `full`, `system.bit` SHA-256
@@ -168,7 +168,7 @@ daemon probes hardware. Second, the `full` core was driving BRAM Port B with
 word addresses while Vivado `blk_mem_gen` expects byte addresses. That made the
 verifier latch repeated job words and reject even known-good vectors until the
 Port B addresses were shifted left by `2` in
-[fpga/kv260_sigv/src/kv260_sigv_top.v](/home/wedtm/txnverify-fpga/fpga/kv260_sigv/src/kv260_sigv_top.v).
+[fpga/kv260_sigv/src/kv260_sigv_top.v](../fpga/kv260_sigv/src/kv260_sigv_top.v).
 
 The repo-side fixes are implemented, the image boots cleanly, and the current
 staged artifacts plus the live boot partition are aligned on the validated
@@ -380,13 +380,13 @@ ss -ltnp | rg '3121|hw_server'
 Start `hw_server` if needed:
 
 ```bash
-/home/wedtm/.cache/txnverify-fpga/kv260-petalinux/home/Xilinx/PetaLinux/2025.2/components/xsct/bin/hw_server
+$HOME/.cache/txnverify-fpga/kv260-petalinux/home/Xilinx/PetaLinux/2025.2/components/xsct/bin/hw_server
 ```
 
 Check XSCT targets:
 
 ```bash
-XSCT=/home/wedtm/.cache/txnverify-fpga/kv260-petalinux/home/Xilinx/PetaLinux/2025.2/components/xsct/bin/xsct
+XSCT=$HOME/.cache/txnverify-fpga/kv260-petalinux/home/Xilinx/PetaLinux/2025.2/components/xsct/bin/xsct
 "$XSCT" -eval 'connect -url tcp:localhost:3121; targets; jtag targets; exit'
 ```
 

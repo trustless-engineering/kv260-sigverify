@@ -33,28 +33,28 @@ config SUBSYSTEM_ENDIAN_LITTLE
 
 if SUBSYSTEM_SDT_FLOW
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.bootcompselection
+source ./Kconfig.bootcompselection
 
 endif
 
 if SUBSYSTEM_DISTRO_PETALINUX
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.linuxcompselection
+source ./Kconfig.linuxcompselection
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.autoconfigsettings
+source ./Kconfig.autoconfigsettings
 
 endif
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.syshw
+source ./Kconfig.syshw
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.dtgsettings
+source ./Kconfig.dtgsettings
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.bootcompconfigurations
+source ./Kconfig.bootcompconfigurations
 
 if SUBSYSTEM_DISTRO_PETALINUX
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.imagepkgconfigurations
+source ./Kconfig.imagepkgconfigurations
 
 endif
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.yoctobuildsettings
+source ./Kconfig.yoctobuildsettings

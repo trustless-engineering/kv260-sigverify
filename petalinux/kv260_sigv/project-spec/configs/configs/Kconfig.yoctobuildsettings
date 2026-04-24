@@ -27,13 +27,13 @@ endmenu
 endif
 
 if !SUBSYSTEM_DISTRO_PETALINUX
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.yoctomachinesettings
+source ./Kconfig.yoctomachinesettings
 endif
 
 if SUBSYSTEM_DISTRO_PETALINUX
 menu "Yocto Settings"
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/configs/Kconfig.yoctomachinesettings
+source ./Kconfig.yoctomachinesettings
 
 if SUBSYSTEM_SDT_FLOW
 config MC_PLNX_IMAGES_LOCATION

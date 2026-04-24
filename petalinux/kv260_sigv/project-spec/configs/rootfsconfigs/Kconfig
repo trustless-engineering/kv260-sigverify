@@ -9310,7 +9310,7 @@ config Init-manager-sysvinit
 endchoice
 endmenu
 
-source /home/wedtm/txnverify-fpga/petalinux/kv260_sigv/project-spec/configs/rootfsconfigs/Kconfig.user
+source ./Kconfig.user
 
 menu "PetaLinux RootFS Settings"
 config ADD_EXTRA_USERS

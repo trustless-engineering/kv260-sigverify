@@ -24,6 +24,7 @@ HW_MODE_PATH = FPGA_DIR / "build" / "hw" / "hw_mode.txt"
 IMAGES_DIR = PETALINUX_PROJECT / "images" / "linux"
 DEFAULT_STAGE_DIR = REPO_ROOT / "artifacts" / "kv260_sigv"
 DEFAULT_SETTINGS = Path.home() / "Xilinx" / "settings-kv260.sh"
+PREPARE_PETALINUX = REPO_ROOT / "tools" / "prepare_petalinux_project.py"
 DOCKER_WRAPPER = REPO_ROOT / "tools" / "kv260_petalinux_docker.sh"
 QEMU_SANITY = REPO_ROOT / "tools" / "kv260_qemu_sanity.py"
 REPORTS_DIR = FPGA_DIR / "build" / "hw" / "reports"
@@ -120,6 +121,7 @@ def petalinux_build() -> None:
     command = " && ".join(
         [
             strict_bash_prelude(),
+            f"{shlex.quote(str(PREPARE_PETALINUX))} --require-xsa",
             f"cd {shlex.quote(str(PETALINUX_PROJECT))}",
             'source "$HOME/Xilinx/PetaLinux/2025.2/settings.sh" >/dev/null 2>&1',
             (

@@ -8,13 +8,14 @@ This project packages the timing-clean KV260 hardware shell from
 Vivado/Vitis runs on the host:
 
 ```bash
-source ~/Xilinx/settings-kv260.sh
+nix develop
+source "$HOME/Xilinx/settings-kv260.sh"
 ```
 
 PetaLinux runs in the Docker-backed Ubuntu 22.04 workspace:
 
 ```bash
-./tools/kv260_petalinux_docker.sh shell
+nix run .#petalinux-shell
 source "$HOME/Xilinx/PetaLinux/2025.2/settings.sh"
 ```
 
@@ -24,7 +25,7 @@ Build the FPGA shell, refresh the PetaLinux project, package `BOOT.BIN`,
 stage the deployable outputs, and run the QEMU sanity check:
 
 ```bash
-./tools/kv260_build_image.py
+nix run .#build-image
 ```
 
 The staged handoff directory defaults to:
@@ -36,7 +37,7 @@ artifacts/kv260_sigv/
 Run only the non-hardware boot sanity check against the current image:
 
 ```bash
-./tools/kv260_qemu_sanity.py
+nix develop -c ./tools/kv260_qemu_sanity.py
 ```
 
 ## Rebuild Flow
@@ -51,9 +52,11 @@ make bitstream
 Import the updated hardware description:
 
 ```bash
-cd /home/wedtm/txnverify-fpga/petalinux/kv260_sigv
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+nix run .#petalinux-prepare -- --require-xsa
+cd "$REPO_ROOT/petalinux/kv260_sigv"
 petalinux-config --silentconfig \
-  --get-hw-description /home/wedtm/txnverify-fpga/fpga/kv260_sigv/build/hw/kv260_sigv.xsa
+  --get-hw-description "$REPO_ROOT/fpga/kv260_sigv/build/hw/kv260_sigv.xsa"
 ```
 
 Build the Linux image:

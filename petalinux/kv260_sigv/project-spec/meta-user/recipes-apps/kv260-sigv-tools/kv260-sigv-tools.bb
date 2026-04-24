@@ -1,6 +1,6 @@
 SUMMARY = "KV260 sigverify smoke-test tools"
-LICENSE = "MIT"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
+LICENSE = "AGPL-3.0-only"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/AGPL-3.0-only;md5=73f1eb20517c55bf9493b7dd6e480788"
 
 SRC_URI = "file://kv260_sigv_smoke.py \
            file://kv260_sigv_irq_watch.py \

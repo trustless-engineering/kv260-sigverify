@@ -2,6 +2,7 @@
 name = "kv260_sigv_daemon"
 version = "0.1.0"
 edition = "2021"
+license = "AGPL-3.0-only"
 
 [dependencies]
 axum = { version = "=0.7.4", features = ["http1", "json"] }

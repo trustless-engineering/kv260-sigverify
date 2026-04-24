@@ -40,7 +40,10 @@ txnverify-fpga/
 
 ## License
 
-TBD
+This repository is licensed under the GNU Affero General Public License v3.0
+only. See [LICENSE](LICENSE).
+
+Files with their own explicit license notices retain those notices.
 
 ## Security Notice
 

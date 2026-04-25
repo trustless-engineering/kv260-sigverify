@@ -5,9 +5,11 @@ use nix::poll::{poll, PollFd, PollFlags};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
+use std::mem::align_of;
 use std::os::fd::AsFd;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
+use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -571,65 +573,114 @@ impl MappedRegion {
     }
 
     fn read_u32(&self, offset: usize) -> Result<u32, ServiceError> {
-        let end = offset.saturating_add(4);
-        if end > self.size {
-            return Err(ServiceError::unavailable(
-                "mmio_bounds",
-                format!("attempted to read past mapped region bounds at offset 0x{offset:04x}"),
-            ));
-        }
-
-        let start = self.delta + offset;
-        let bytes: [u8; 4] = self.mapping[start..start + 4]
-            .try_into()
-            .expect("slice length is checked");
-        Ok(u32::from_le_bytes(bytes))
+        let start = self.checked_word_start(offset, "read")?;
+        let value = unsafe {
+            let word_ptr = self.mapping.as_ptr().add(start).cast::<u32>();
+            ptr::read_volatile(word_ptr)
+        };
+        Ok(u32::from_le(value))
     }
 
     fn write_u32(&mut self, offset: usize, value: u32) -> Result<(), ServiceError> {
-        let end = offset.saturating_add(4);
-        if end > self.size {
-            return Err(ServiceError::unavailable(
-                "mmio_bounds",
-                format!("attempted to write past mapped region bounds at offset 0x{offset:04x}"),
-            ));
+        let start = self.checked_word_start(offset, "write")?;
+        unsafe {
+            let word_ptr = self.mapping.as_mut_ptr().add(start).cast::<u32>();
+            ptr::write_volatile(word_ptr, value.to_le());
         }
-
-        let start = self.delta + offset;
-        self.mapping[start..start + 4].copy_from_slice(&value.to_le_bytes());
-        self.mapping.flush().map_err(|error| {
-            ServiceError::unavailable(
-                "flush_region_failed",
-                format!("failed to flush MMIO write at offset 0x{offset:04x}: {error}"),
-            )
-        })
+        Ok(())
     }
 
     fn write_bytes(&mut self, data: &[u8]) -> Result<(), ServiceError> {
-        if data.len() > self.size {
-            return Err(ServiceError::limit(
-                "payload_too_large",
+        write_bytes_as_u32_words(data, self.size, |offset, value| {
+            self.write_u32(offset, value)
+        })
+    }
+
+    fn checked_word_start(&self, offset: usize, operation: &str) -> Result<usize, ServiceError> {
+        let end = offset.checked_add(4).ok_or_else(|| {
+            ServiceError::unavailable(
+                "mmio_bounds",
                 format!(
-                    "payload is too large for the mapped region ({} > {})",
-                    data.len(),
-                    self.size
+                    "attempted to {operation} past mapped region bounds at offset 0x{offset:04x}"
+                ),
+            )
+        })?;
+        if end > self.size {
+            return Err(ServiceError::unavailable(
+                "mmio_bounds",
+                format!(
+                    "attempted to {operation} past mapped region bounds at offset 0x{offset:04x}"
                 ),
             ));
         }
 
-        let start = self.delta;
-        let end = start + data.len();
-        self.mapping[start..end].copy_from_slice(data);
-        if data.len() < self.size {
-            self.mapping[end..start + self.size].fill(0);
-        }
-        self.mapping.flush().map_err(|error| {
+        let start = self.delta.checked_add(offset).ok_or_else(|| {
             ServiceError::unavailable(
-                "flush_region_failed",
-                format!("failed to flush mapped region: {error}"),
+                "mmio_bounds",
+                format!("attempted to {operation} using an overflowing MMIO offset 0x{offset:04x}"),
             )
-        })
+        })?;
+        if start % align_of::<u32>() != 0 {
+            return Err(ServiceError::unavailable(
+                "mmio_alignment",
+                format!("attempted to {operation} unaligned MMIO word at offset 0x{offset:04x}"),
+            ));
+        }
+
+        Ok(start)
     }
+}
+
+fn write_bytes_as_u32_words<F>(
+    data: &[u8],
+    region_size: usize,
+    mut write_word: F,
+) -> Result<(), ServiceError>
+where
+    F: FnMut(usize, u32) -> Result<(), ServiceError>,
+{
+    if data.len() > region_size {
+        return Err(ServiceError::limit(
+            "payload_too_large",
+            format!(
+                "payload is too large for the mapped region ({} > {})",
+                data.len(),
+                region_size
+            ),
+        ));
+    }
+    if region_size % align_of::<u32>() != 0 {
+        return Err(ServiceError::unavailable(
+            "mmio_alignment",
+            format!("mapped region size is not 32-bit aligned ({region_size})"),
+        ));
+    }
+
+    let mut offset = 0usize;
+    let full_word_limit = data.len() & !0x3;
+    while offset < full_word_limit {
+        let value = u32::from_le_bytes(
+            data[offset..offset + 4]
+                .try_into()
+                .expect("full-word slice length is fixed"),
+        );
+        write_word(offset, value)?;
+        offset += 4;
+    }
+
+    if offset < data.len() {
+        let mut tail = [0u8; 4];
+        tail[..data.len() - offset].copy_from_slice(&data[offset..]);
+        write_word(offset, u32::from_le_bytes(tail))?;
+        offset += 4;
+    }
+
+    while offset < region_size {
+        write_word(offset, 0)?;
+        offset += 4;
+    }
+
+    Ok(())
 }
 
 impl UioInterrupt {
@@ -914,8 +965,8 @@ fn read_snapshot(control: &MappedRegion) -> Result<SnapshotStatus, ServiceError>
 #[cfg(test)]
 mod tests {
     use super::{
-        AcceleratorStatus, HardwareBatchRequest, HardwareBatchResult, SigverifyAccelerator,
-        SingleFlightAccelerator, VerificationJob, VerifyMode,
+        write_bytes_as_u32_words, AcceleratorStatus, HardwareBatchRequest, HardwareBatchResult,
+        SigverifyAccelerator, SingleFlightAccelerator, VerificationJob, VerifyMode,
     };
     use crate::error::{ErrorKind, ServiceError};
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1009,6 +1060,56 @@ mod tests {
             dispatch_limit: 0,
             job_timeout_cycles: 0,
         }
+    }
+
+    #[test]
+    fn mmio_byte_writer_emits_aligned_words_and_zero_fills_region() {
+        let mut writes = Vec::new();
+
+        write_bytes_as_u32_words(&[1, 2, 3, 4, 5, 6], 16, |offset, value| {
+            writes.push((offset, value));
+            Ok(())
+        })
+        .unwrap();
+
+        assert_eq!(
+            writes,
+            vec![
+                (0, 0x0403_0201),
+                (4, 0x0000_0605),
+                (8, 0x0000_0000),
+                (12, 0x0000_0000),
+            ]
+        );
+    }
+
+    #[test]
+    fn mmio_byte_writer_preserves_exact_words() {
+        let mut writes = Vec::new();
+
+        write_bytes_as_u32_words(&[0xaa, 0xbb, 0xcc, 0xdd], 8, |offset, value| {
+            writes.push((offset, value));
+            Ok(())
+        })
+        .unwrap();
+
+        assert_eq!(writes, vec![(0, 0xddcc_bbaa), (4, 0x0000_0000)]);
+    }
+
+    #[test]
+    fn mmio_byte_writer_rejects_oversized_payloads() {
+        let error = write_bytes_as_u32_words(&[0; 5], 4, |_, _| unreachable!()).unwrap_err();
+
+        assert_eq!(error.kind, ErrorKind::Limit);
+        assert_eq!(error.code, "payload_too_large");
+    }
+
+    #[test]
+    fn mmio_byte_writer_rejects_unaligned_regions() {
+        let error = write_bytes_as_u32_words(&[0; 4], 6, |_, _| unreachable!()).unwrap_err();
+
+        assert_eq!(error.kind, ErrorKind::Unavailable);
+        assert_eq!(error.code, "mmio_alignment");
     }
 
     #[test]
